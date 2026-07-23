@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - {% if edit_company %}Editar{% else %}Nova{% endif %} Empresa{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold text-gray-900 mb-6">{% if edit_company %}Editar Empresa{% else %}Nova Empresa{% endif %}</h1>
+<form method="POST" action="{% if edit_company %}/companies/{{ edit_company.id }}/edit{% else %}/companies/new{% endif %}" class="bg-white rounded-xl border border-gray-200 p-6 max-w-3xl">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+        <input type="text" name="name" value="{{ edit_company.name if edit_company else '' }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
+        <input type="text" name="cnpj" value="{{ edit_company.cnpj if edit_company else '' }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+        <input type="text" name="address" value="{{ edit_company.address if edit_company else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+            <input type="text" name="phone" value="{{ edit_company.phone if edit_company else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" name="email" value="{{ edit_company.email if edit_company else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+    </div>
+    <div class="flex gap-2 mt-6 pt-4 border-t border-gray-200">
+        <a href="/companies" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Cancelar</a>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Salvar</button>
+    </div>
+</form>
+{% endblock %}

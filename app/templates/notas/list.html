@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Notas Fiscais{% endblock %}
+{% block content %}
+{% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Notas Fiscais</h1>
+        <p class="text-sm text-gray-500 mt-1">Gerencie todas as notas fiscais emitidas</p>
+    </div>
+    {% if 'fornecedores:create' in perms or user.role.name == 'admin' %}
+    <a href="/notas/new" class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition shadow-sm" title="Cadastrar uma nova nota fiscal">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nova Nota Fiscal
+    </a>
+    {% endif %}
+</div>
+
+{% set has_filters = filters.data_inicio or filters.data_fim or filters.fornecedor_id or filters.empresa_id or filters.tipo_material_id or filters.numero %}
+<div class="bg-white rounded-xl border border-gray-200 mb-6">
+    <button type="button" onclick="toggleFilters()" class="flex items-center gap-2 w-full px-4 py-3 text-sm font-semibold text-gray-700 hover:text-primary-600 transition">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        Filtros
+        {% if has_filters %}<span class="bg-primary-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full">{{ pagination.total }}</span>{% endif %}
+        <svg id="filterArrow" class="w-3.5 h-3.5 ml-auto transition-transform duration-200 {% if has_filters %}rotate-180{% endif %}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div id="filterBody" class="{% if not has_filters %}hidden{% endif %} px-4 pb-4 border-t border-gray-100">
+        <form method="GET" action="/notas" class="pt-4">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Buscar por Número</label>
+                <input type="text" name="numero" value="{{ filters.numero }}" placeholder="Digite o número da nota..." class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Emissão Início</label>
+                    <input type="date" name="data_inicio" value="{{ filters.data_inicio }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Emissão Fim</label>
+                    <input type="date" name="data_fim" value="{{ filters.data_fim }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Material</label>
+                    <select name="tipo_material_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos</option>
+                        {% for t in tipos %}
+                        <option value="{{ t.id }}" {% if filters.tipo_material_id|string == t.id|string %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Fornecedor</label>
+                    <select name="fornecedor_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos</option>
+                        {% for f in fornecedores %}
+                        <option value="{{ f.id }}" {% if filters.fornecedor_id|string == f.id|string %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Empresa Destinatária</label>
+                    <select name="empresa_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todas</option>
+                        {% for e in empresas %}
+                        <option value="{{ e.id }}" {% if filters.empresa_id|string == e.id|string %}selected{% endif %}>{{ e.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" name="per_page" value="{{ pagination.per_page }}">
+            <div class="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                <a href="/notas" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Limpar</a>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+    <p class="text-sm text-gray-500">{{ pagination.total }} registro{{ 's' if pagination.total != 1 }} encontrado{{ 's' if pagination.total != 1 }}</p>
+    <form method="GET" action="/notas" data-no-loading class="flex items-center gap-2">
+        {% if has_filters %}
+        <input type="hidden" name="numero" value="{{ filters.numero }}">
+        <input type="hidden" name="data_inicio" value="{{ filters.data_inicio }}">
+        <input type="hidden" name="data_fim" value="{{ filters.data_fim }}">
+        <input type="hidden" name="fornecedor_id" value="{{ filters.fornecedor_id }}">
+        <input type="hidden" name="empresa_id" value="{{ filters.empresa_id }}">
+        <input type="hidden" name="tipo_material_id" value="{{ filters.tipo_material_id }}">
+        {% endif %}
+        <label class="text-sm text-gray-500">Itens por página:</label>
+        <select name="per_page" onchange="this.form.submit()" class="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            {% for n in [10, 20, 50, 100] %}
+            <option value="{{ n }}" {% if pagination.per_page == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if notas %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px]">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Número</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden sm:table-cell">Fornecedor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden md:table-cell">CNPJ Fornecedor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Empresa</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden lg:table-cell">Tipo Material</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Emissão</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Valor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Boletos</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Ações</th>
+            </tr></thead>
+            <tbody>
+                {% for nota in notas %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ nota.numero }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">{{ nota.fornecedor.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{{ nota.fornecedor_cnpj }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ nota.empresa.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden lg:table-cell">{{ nota.tipo_material.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ nota.data_emissao.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">R$ {{ "%.2f"|format(nota.valor_total) }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ nota.boletos|length }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <a href="/notas/{{ nota.id }}" title="Ver detalhes da nota fiscal" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">Ver</a>
+                            {% if 'fornecedores:edit' in perms or user.role.name == 'admin' %}
+                            <a href="/notas/{{ nota.id }}/edit" title="Editar nota fiscal" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition hidden sm:inline-flex">Editar</a>
+                            {% endif %}
+                            {% if 'fornecedores:delete' in perms or user.role.name == 'admin' %}
+                            <form method="POST" action="/notas/{{ nota.id }}/delete" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir esta nota fiscal e todos os boletos vinculados?')">
+                                <button type="submit" title="Excluir nota fiscal e boletos vinculados" class="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition hidden sm:inline-flex">Excluir</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-700 mb-2">Nenhuma nota fiscal encontrada</h3>
+    <p class="text-sm text-gray-400 mb-4">Comece cadastrando uma nova nota fiscal ou ajuste os filtros</p>
+    {% if 'fornecedores:create' in perms or user.role.name == 'admin' %}
+    <a href="/notas/new" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Criar Primeira Nota Fiscal
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if pagination.total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <div class="hidden sm:flex items-center gap-1">
+        {% set base_params = ['per_page=' + pagination.per_page|string] %}
+        {% if filters.numero %}{% set _ = base_params.append('numero=' + filters.numero) %}{% endif %}
+        {% if filters.data_inicio %}{% set _ = base_params.append('data_inicio=' + filters.data_inicio) %}{% endif %}
+        {% if filters.data_fim %}{% set _ = base_params.append('data_fim=' + filters.data_fim) %}{% endif %}
+        {% if filters.fornecedor_id %}{% set _ = base_params.append('fornecedor_id=' + filters.fornecedor_id) %}{% endif %}
+        {% if filters.empresa_id %}{% set _ = base_params.append('empresa_id=' + filters.empresa_id) %}{% endif %}
+        {% if filters.tipo_material_id %}{% set _ = base_params.append('tipo_material_id=' + filters.tipo_material_id) %}{% endif %}
+
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Anterior</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Anterior</span>
+        {% endif %}
+
+        {% for p in range(1, pagination.total_pages + 1) %}
+            {% if p == pagination.page %}
+            <span class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg">{{ p }}</span>
+            {% elif p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+            <a href="?{{ base_params|join('&') }}&page={{ p }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">{{ p }}</a>
+            {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+            <span class="px-3 py-1.5 text-sm font-medium text-gray-400">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Próximo</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Próximo</span>
+        {% endif %}
+    </div>
+    <div class="flex sm:hidden items-center gap-2">
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&laquo;</a>
+        {% endif %}
+        <span class="text-sm text-gray-500">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleFilters() {
+    var body = document.getElementById('filterBody');
+    var arrow = document.getElementById('filterArrow');
+    body.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+</script>
+{% endblock %}

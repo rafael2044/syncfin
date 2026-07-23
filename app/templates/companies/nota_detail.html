@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Nota Fiscal {{ nota.numero }}{% endblock %}
+{% block content %}
+{% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-bold text-gray-900">Nota Fiscal {{ nota.numero }}</h1>
+        <p class="text-sm text-gray-500">{{ nota.fornecedor.name }} → {{ nota.empresa.name }}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/fornecedores/{{ nota.fornecedor_id }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Voltar</a>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+    <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Informações da Nota Fiscal</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Número</p>
+            <p class="text-sm text-gray-800">{{ nota.numero }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Tipo de Material</p>
+            <p class="text-sm text-gray-800">{{ nota.tipo_material.name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Descrição</p>
+            <p class="text-sm text-gray-800">{{ nota.descricao or '-' }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Fornecedor</p>
+            <p class="text-sm text-gray-800">{{ nota.fornecedor.name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">CNPJ Fornecedor</p>
+            <p class="text-sm text-gray-800">{{ nota.fornecedor_cnpj }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Empresa Destinatária</p>
+            <p class="text-sm text-gray-800">{{ nota.empresa.name }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">CNPJ Destinatário</p>
+            <p class="text-sm text-gray-800">{{ nota.empresa_cnpj }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Data de Emissão</p>
+            <p class="text-sm text-gray-800">{{ nota.data_emissao.strftime('%d/%m/%Y') }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Valor Total</p>
+            <p class="text-sm font-bold text-primary-600">R$ {{ "%.2f"|format(nota.valor_total) }}</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Total de Boletos</p>
+            <p class="text-sm text-gray-800">{{ nota.boletos|length }}</p>
+        </div>
+        {% set total_pago = nota.boletos|selectattr('pago')|list|length %}
+        <div>
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Boletos Pagos</p>
+            <p class="text-sm text-gray-800">{{ total_pago }} / {{ nota.boletos|length }}</p>
+        </div>
+    </div>
+    {% if nota.anexo %}
+    <div class="border-t border-gray-200 pt-4 mt-4">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Anexo</p>
+        {% if nota.anexo.endswith('.pdf') %}
+        <a href="{{ nota.anexo }}" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition">Abrir PDF</a>
+        {% else %}
+        <a href="{{ nota.anexo }}" target="_blank"><img src="{{ nota.anexo }}" alt="Anexo" class="max-w-full max-h-48 rounded-lg border border-gray-200"></a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Boletos</h2>
+    {% if 'boletos:create' in perms or user.role.name == 'admin' %}
+    <a href="/notas/{{ nota.id }}/boletos/new" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Novo Boleto</a>
+    {% endif %}
+</div>
+
+{% if boletos %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[500px]">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Descrição</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Tipo de Material</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Valor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Vencimento</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Status</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Ações</th>
+            </tr></thead>
+            <tbody>
+                {% for b in boletos %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ b.descricao or '-' }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ nota.tipo_material.name }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">R$ {{ "%.2f"|format(b.valor) }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ b.data_vencimento.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-4 py-3">
+                        {% if b.status == 'pago' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Pago</span>
+                        {% elif b.status == 'atrasado' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Atrasado</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <a href="/boletos/{{ b.id }}" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">Ver</a>
+                            {% if 'boletos:edit' in perms or user.role.name == 'admin' %}
+                            <a href="/boletos/{{ b.id }}/edit" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition hidden sm:inline-flex">Editar</a>
+                            {% if not b.pago %}
+                            <a href="/boletos/{{ b.id }}/pay" class="px-2.5 py-1 text-xs font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition hidden sm:inline-flex">Pagar</a>
+                            {% endif %}
+                            {% endif %}
+                            {% if 'boletos:delete' in perms or user.role.name == 'admin' %}
+                            <form method="POST" action="/boletos/{{ b.id }}/delete" class="inline" onsubmit="return confirm('Excluir este boleto?')">
+                                <button type="submit" class="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition hidden sm:inline-flex">Excluir</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 p-8 text-center">
+    <p class="text-sm text-gray-400">Nenhum boleto cadastrado para esta nota fiscal.</p>
+</div>
+{% endif %}
+{% endblock %}

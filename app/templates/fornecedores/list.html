@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Fornecedores{% endblock %}
+{% block content %}
+{% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Fornecedores</h1>
+        <p class="text-sm text-gray-500 mt-1">Cadastre e gerencie seus fornecedores</p>
+    </div>
+    {% if 'fornecedores:create' in perms or user.role.name == 'admin' %}
+    <a href="/fornecedores/new" class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition shadow-sm" title="Cadastrar um novo fornecedor com CNPJ(s)">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Fornecedor
+    </a>
+    {% endif %}
+</div>
+
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+    <p class="text-sm text-gray-500">{{ pagination.total }} registro{{ 's' if pagination.total != 1 }} encontrado{{ 's' if pagination.total != 1 }}</p>
+    <form method="GET" action="/fornecedores" data-no-loading class="flex items-center gap-2">
+        <label class="text-sm text-gray-500">Itens por página:</label>
+        <select name="per_page" onchange="this.form.submit()" class="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            {% for n in [10, 20, 50, 100] %}
+            <option value="{{ n }}" {% if pagination.per_page == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% if fornecedores %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[500px]">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Nome</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden sm:table-cell">CNPJs</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden md:table-cell">Telefone</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Ações</th>
+            </tr></thead>
+            <tbody>
+                {% for f in fornecedores %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ f.name }}</td>
+                    <td class="px-4 py-3 hidden sm:table-cell">
+                        <div class="flex flex-wrap gap-1">
+                            {% for c in f.cnpjs[:3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">{{ c.cnpj }}</span>
+                            {% endfor %}
+                            {% if f.cnpjs|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">+{{ f.cnpjs|length - 3 }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{{ f.phone or '-' }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            <a href="/fornecedores/{{ f.id }}" title="Ver detalhes e notas fiscais do fornecedor" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">Ver</a>
+                            {% if 'fornecedores:edit' in perms or user.role.name == 'admin' %}
+                            <a href="/fornecedores/{{ f.id }}/edit" title="Editar informações do fornecedor" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition hidden sm:inline-flex">Editar</a>
+                            {% endif %}
+                            {% if 'fornecedores:delete' in perms or user.role.name == 'admin' %}
+                            <form method="POST" action="/fornecedores/{{ f.id }}/delete" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este fornecedor e todas as notas fiscais vinculadas?')">
+                                <button type="submit" title="Excluir fornecedor e notas vinculadas" class="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition hidden sm:inline-flex">Excluir</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-700 mb-2">Nenhum fornecedor cadastrado</h3>
+    <p class="text-sm text-gray-400 mb-4">Cadastre fornecedores para vincular notas fiscais e boletos</p>
+    {% if 'fornecedores:create' in perms or user.role.name == 'admin' %}
+    <a href="/fornecedores/new" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Cadastrar Primeiro Fornecedor
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if pagination.total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <div class="hidden sm:flex items-center gap-1">
+        {% set base_params = ['per_page=' + pagination.per_page|string] %}
+
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Anterior</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Anterior</span>
+        {% endif %}
+
+        {% for p in range(1, pagination.total_pages + 1) %}
+            {% if p == pagination.page %}
+            <span class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg">{{ p }}</span>
+            {% elif p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+            <a href="?{{ base_params|join('&') }}&page={{ p }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">{{ p }}</a>
+            {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+            <span class="px-3 py-1.5 text-sm font-medium text-gray-400">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Próximo</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Próximo</span>
+        {% endif %}
+    </div>
+    <div class="flex sm:hidden items-center gap-2">
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&laquo;</a>
+        {% endif %}
+        <span class="text-sm text-gray-500">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Log de Auditoria{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold text-gray-900 mb-6">Log de Auditoria</h1>
+
+<div class="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+    <form method="GET" action="/audit" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Entidade</label>
+            <select name="entity" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <option value="">Todas</option>
+                <option value="boleto" {% if filters.entity == 'boleto' %}selected{% endif %}>Boleto</option>
+                <option value="nota_fiscal" {% if filters.entity == 'nota_fiscal' %}selected{% endif %}>Nota Fiscal</option>
+                <option value="company" {% if filters.entity == 'company' %}selected{% endif %}>Empresa</option>
+                <option value="fornecedor" {% if filters.entity == 'fornecedor' %}selected{% endif %}>Fornecedor</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Ação</label>
+            <select name="action" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <option value="">Todas</option>
+                <option value="create" {% if filters.action == 'create' %}selected{% endif %}>Criação</option>
+                <option value="update" {% if filters.action == 'update' %}selected{% endif %}>Edição</option>
+                <option value="delete" {% if filters.action == 'delete' %}selected{% endif %}>Exclusão</option>
+                <option value="pay" {% if filters.action == 'pay' %}selected{% endif %}>Pagamento</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+            <select name="user_id" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                <option value="">Todos</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if filters.user_id == u.id|string %}selected{% endif %}>{{ u.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Filtrar</button>
+        <a href="/audit" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Limpar</a>
+    </form>
+</div>
+
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+    <p class="text-sm text-gray-500">{{ pagination.total }} registro{{ 's' if pagination.total != 1 }}</p>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[600px]">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Data/Hora</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Usuário</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Ação</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Entidade</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden sm:table-cell">ID</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Descrição</th>
+            </tr></thead>
+            <tbody>
+                {% for log in logs %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ log.user.username }}</td>
+                    <td class="px-4 py-3">
+                        {% if log.action == 'create' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Criação</span>
+                        {% elif log.action == 'update' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Edição</span>
+                        {% elif log.action == 'delete' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Exclusão</span>
+                        {% elif log.action == 'pay' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">Pagamento</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{{ log.action }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        {% if log.entity == 'boleto' %}Boleto
+                        {% elif log.entity == 'nota_fiscal' %}Nota Fiscal
+                        {% elif log.entity == 'company' %}Empresa
+                        {% elif log.entity == 'fornecedor' %}Fornecedor
+                        {% else %}{{ log.entity }}{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 hidden sm:table-cell">#{{ log.entity_id }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ log.description or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if pagination.total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <div class="hidden sm:flex items-center gap-1">
+        {% set base_params = ['per_page=' + pagination.per_page|string] %}
+        {% if filters.entity %}{% set _ = base_params.append('entity=' + filters.entity) %}{% endif %}
+        {% if filters.action %}{% set _ = base_params.append('action=' + filters.action) %}{% endif %}
+        {% if filters.user_id %}{% set _ = base_params.append('user_id=' + filters.user_id) %}{% endif %}
+
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Anterior</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Anterior</span>
+        {% endif %}
+
+        {% for p in range(1, pagination.total_pages + 1) %}
+            {% if p == pagination.page %}
+            <span class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg">{{ p }}</span>
+            {% elif p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+            <a href="?{{ base_params|join('&') }}&page={{ p }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">{{ p }}</a>
+            {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+            <span class="px-3 py-1.5 text-sm font-medium text-gray-400">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Próximo</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Próximo</span>
+        {% endif %}
+    </div>
+    <div class="flex sm:hidden items-center gap-2">
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&laquo;</a>
+        {% endif %}
+        <span class="text-sm text-gray-500">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

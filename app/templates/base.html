@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SyncFin{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80', 500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .toast-enter { animation: toastIn 0.3s ease-out; }
+        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .sidebar-text { transition: opacity 0.15s ease; white-space: nowrap; }
+        .sidebar-collapsed .sidebar-text { opacity: 0; width: 0; overflow: hidden; display: none; }
+        .sidebar-collapsed .nav-link { justify-content: center; padding: 0.625rem 0; }
+        .sidebar-collapsed .user-info-text { display: none; }
+        .sidebar-collapsed .sidebar-logo-text { display: none; }
+        .sidebar-collapsed .user-logout { display: none; }
+        .loading-spinner { animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black/30 backdrop-blur-sm z-[200] flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl px-8 py-6 flex items-center gap-4">
+            <svg class="w-8 h-8 text-primary-600 loading-spinner" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="loadingText" class="text-gray-700 font-medium text-sm">Carregando...</span>
+        </div>
+    </div>
+    {% if user is defined and user %}
+    {% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transform -translate-x-full lg:translate-x-0 transition-all duration-200 ease-in-out w-64 lg:w-64">
+            <div class="flex flex-col h-full">
+                <!-- Logo -->
+                <div class="flex items-center justify-center px-4 h-16 border-b border-gray-200 flex-shrink-0">
+                    <img src="/static/logo.png" alt="SyncFin" class="h-10 object-contain">
+                </div>
+
+                <!-- Navigation -->
+                <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                    {% if 'dashboard:read' in perms or user.role.name == 'admin' %}
+                    <a href="/dashboard" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Dashboard">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        <span class="sidebar-text">Dashboard</span>
+                    </a>
+                    {% endif %}
+                    {% if 'companies:read' in perms or user.role.name == 'admin' %}
+                    <a href="/companies" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Empresas">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <span class="sidebar-text">Empresas</span>
+                    </a>
+                    {% endif %}
+                    {% if 'fornecedores:read' in perms or user.role.name == 'admin' %}
+                    <a href="/fornecedores" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Fornecedores">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                        <span class="sidebar-text">Fornecedores</span>
+                    </a>
+                    {% endif %}
+                    {% if 'fornecedores:read' in perms or user.role.name == 'admin' %}
+                    <a href="/notas" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Notas Fiscais">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span class="sidebar-text">Notas Fiscais</span>
+                    </a>
+                    {% endif %}
+                    {% if 'boletos:read' in perms or user.role.name == 'admin' %}
+                    <a href="/boletos" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Boletos">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        <span class="sidebar-text">Boletos</span>
+                    </a>
+                    {% endif %}
+                    {% if 'reports:read' in perms or user.role.name == 'admin' %}
+                    <a href="/reports" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Relatórios">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span class="sidebar-text">Relatórios</span>
+                    </a>
+                    {% endif %}
+                    {% if 'categories:read' in perms or user.role.name == 'admin' %}
+                    <a href="/tipos-material" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Tipos de Material">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                        <span class="sidebar-text">Tipos de Material</span>
+                    </a>
+                    {% endif %}
+                    {% if 'users:read' in perms or user.role.name == 'admin' %}
+                    <a href="/users" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Usuários">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <span class="sidebar-text">Usuários</span>
+                    </a>
+                    {% endif %}
+
+                    <div class="border-t border-gray-200 my-3"></div>
+
+                    {% if 'permissions:read' in perms or user.role.name == 'admin' %}
+                    <a href="/permissions/roles" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Permissões">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <span class="sidebar-text">Permissões</span>
+                    </a>
+                    {% endif %}
+                    {% if 'permissions:read' in perms or user.role.name == 'admin' %}
+                    <a href="/audit" class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition" title="Auditoria">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                        <span class="sidebar-text">Auditoria</span>
+                    </a>
+                    {% endif %}
+                </nav>
+
+                <!-- Toggle Button -->
+                <div class="px-3 py-2 flex-shrink-0 hidden lg:block">
+                    <button onclick="toggleCollapse()" id="collapseBtn" class="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition" title="Recolher/Expandir menu">
+                        <svg id="collapseIcon" class="w-5 h-5 flex-shrink-0 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                        <span class="sidebar-text">Recolher</span>
+                    </button>
+                </div>
+
+                <!-- User Info -->
+                <div class="border-t border-gray-200 px-3 py-4 flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold text-primary-600">{{ (user.full_name or user.username)[0]|upper }}</span>
+                        </div>
+                        <div class="user-info-text flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ user.full_name or user.username }}</p>
+                            <p class="text-xs text-gray-400 truncate">{{ user.role.name if user.role else 'Usuário' }}</p>
+                        </div>
+                        <a href="/logout" title="Sair do sistema" class="user-logout p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay for mobile -->
+        <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="flex-1 lg:ml-64 transition-all duration-200">
+            <!-- Mobile Header -->
+            <header class="lg:hidden sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+                <div class="flex items-center justify-between px-4 h-14">
+                    <button onclick="toggleSidebar()" class="p-2 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <img src="/static/logo.png" alt="SyncFin" class="h-7 object-contain">
+                    </div>
+                    <div class="w-10"></div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    {% endif %}
+
+    <div id="toast-container" class="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <script>
+    function showLoading(message) {
+        var textEl = document.getElementById('loadingText');
+        if (textEl) textEl.textContent = message || 'Carregando...';
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+    }
+
+    function getActionMessage(action) {
+        if (!action) return 'Carregando...';
+        if (action.includes('/delete')) return 'Excluindo...';
+        if (action.includes('/new') || action.includes('/create')) return 'Cadastrando...';
+        if (action.includes('/edit') || action.includes('/update') || action.includes('/reset')) return 'Atualizando...';
+        return 'Carregando...';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                if (form.hasAttribute('data-no-loading')) return;
+                if (form.getAttribute('onsubmit') && form.getAttribute('onsubmit').includes('return false')) return;
+                var confirmMatch = form.getAttribute('onsubmit') && form.getAttribute('onsubmit').match(/confirm\(['"](.+?)['"]\)/);
+                if (confirmMatch && !confirm(confirmMatch[1])) {
+                    e.preventDefault();
+                    return;
+                }
+                var action = form.getAttribute('action') || '';
+                showLoading(getActionMessage(action));
+            });
+        });
+
+        document.querySelectorAll('a[href]').forEach(function(link) {
+            var href = link.getAttribute('href');
+            if (!href || href === '#' || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+            link.addEventListener('click', function() {
+                showLoading('Carregando...');
+            });
+        });
+    });
+
+    function toggleSidebar() {
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+
+    function toggleCollapse() {
+        var sidebar = document.getElementById('sidebar');
+        var mainContent = document.getElementById('mainContent');
+        var icon = document.getElementById('collapseIcon');
+        var btn = document.getElementById('collapseBtn');
+        var isCollapsed = sidebar.classList.contains('lg:w-16');
+
+        if (isCollapsed) {
+            sidebar.classList.remove('lg:w-16', 'sidebar-collapsed');
+            sidebar.classList.add('lg:w-64');
+            mainContent.classList.remove('lg:ml-16');
+            mainContent.classList.add('lg:ml-64');
+            icon.style.transform = 'rotate(0deg)';
+            localStorage.setItem('sidebar_collapsed', 'false');
+        } else {
+            sidebar.classList.remove('lg:w-64');
+            sidebar.classList.add('lg:w-16', 'sidebar-collapsed');
+            mainContent.classList.remove('lg:ml-64');
+            mainContent.classList.add('lg:ml-16');
+            icon.style.transform = 'rotate(180deg)';
+            localStorage.setItem('sidebar_collapsed', 'true');
+        }
+    }
+
+    // Restore sidebar state on load
+    (function() {
+        if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            var sidebar = document.getElementById('sidebar');
+            var mainContent = document.getElementById('mainContent');
+            var icon = document.getElementById('collapseIcon');
+            sidebar.classList.remove('lg:w-64');
+            sidebar.classList.add('lg:w-16', 'sidebar-collapsed');
+            mainContent.classList.remove('lg:ml-64');
+            mainContent.classList.add('lg:ml-16');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    })();
+
+    function showToast(message, type) {
+        var container = document.getElementById('toast-container');
+        var icons = {
+            success: '<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            error: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+            info: '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+        };
+        var colors = {
+            success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+            error: 'bg-red-50 border-red-200 text-red-800',
+            info: 'bg-blue-50 border-blue-200 text-blue-800'
+        };
+        var toast = document.createElement('div');
+        toast.className = 'pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg toast-enter ' + (colors[type] || colors.info);
+        toast.innerHTML = (icons[type] || icons.info) + '<p class="text-sm font-medium flex-1">' + message + '</p><button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>';
+        container.appendChild(toast);
+        setTimeout(function() { toast.classList.add('toast-exit'); setTimeout(function() { toast.remove(); }, 300); }, 4000);
+    }
+
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var msg = params.get('toast_msg');
+        var type = params.get('toast_type') || 'info';
+        if (msg) {
+            showToast(decodeURIComponent(msg), type);
+            params.delete('toast_msg');
+            params.delete('toast_type');
+            var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+            window.history.replaceState({}, '', newUrl);
+        }
+    })();
+    </script>
+</body>
+</html>

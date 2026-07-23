@@ -1,0 +1,39 @@
+# Ambiente virtual
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Banco de dados local
+*.db
+*.sqlite3
+
+# Variáveis de ambiente
+.env
+
+# Certificados SSL
+cert_db/
+
+# Uploads
+uploads/
+app/static/uploads/
+
+# Logo raiz (cópia)
+logo.png
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db

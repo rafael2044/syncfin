@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Relatório de Notas Fiscais{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-xl font-bold text-gray-900">Relatório de Notas Fiscais</h1>
+    <a href="/reports" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Voltar</a>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
+    <form method="GET" action="/reports/notas/data">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Emissão Início</label>
+                <input type="date" name="data_inicio" value="{{ filters.data_inicio if filters else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Emissão Fim</label>
+                <input type="date" name="data_fim" value="{{ filters.data_fim if filters else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Material</label>
+                <select name="tipo_material_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Todos</option>
+                    {% for t in tipos %}
+                    <option value="{{ t.id }}" {% if filters and filters.tipo_material_id == t.id|string %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fornecedor</label>
+                <select name="fornecedor_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Todos</option>
+                    {% for f in fornecedores %}
+                    <option value="{{ f.id }}" {% if filters and filters.fornecedor_id == f.id|string %}selected{% endif %}>{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Empresa Destinatária</label>
+                <select name="empresa_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Todas</option>
+                    {% for c in companies %}
+                    <option value="{{ c.id }}" {% if filters and filters.empresa_id == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">Gerar Relatório</button>
+        </div>
+    </form>
+</div>
+
+{% if notas is defined %}
+<div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-xl border border-gray-200 p-5 border-l-4 border-l-cyan-500">
+        <p class="text-3xl font-bold text-gray-900">{{ notas|length }}</p>
+        <p class="text-sm text-gray-500">Total de Notas</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5 border-l-4 border-l-emerald-500">
+        <p class="text-3xl font-bold text-gray-900">R$ {{ "%.2f"|format(total_valor) }}</p>
+        <p class="text-sm text-gray-500">Valor Total</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5 border-l-4 border-l-amber-500">
+        <p class="text-3xl font-bold text-gray-900">{{ total_boletos }}</p>
+        <p class="text-sm text-gray-500">Total de Boletos</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200 p-5 border-l-4 border-l-primary-500">
+        <p class="text-3xl font-bold text-gray-900">{{ boletos_pagos }}/{{ boletos_pendentes }}</p>
+        <p class="text-sm text-gray-500">Pagos / Pendentes</p>
+    </div>
+</div>
+
+<div>
+    <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">Resultado</h2>
+    {% if notas %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[700px]">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Número</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden sm:table-cell">Fornecedor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">CNPJ Fornecedor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Empresa</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3 hidden md:table-cell">Tipo Material</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Emissão</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Valor</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Boletos</th>
+            </tr></thead>
+            <tbody>
+                {% for n in notas %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700">
+                        <a href="/notas/{{ n.id }}" class="text-primary-600 hover:underline">{{ n.numero }}</a>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden sm:table-cell">{{ n.fornecedor.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ n.fornecedor_cnpj }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ n.empresa.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{{ n.tipo_material.name }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ n.data_emissao.strftime('%d/%m/%Y') }}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-gray-900">R$ {{ "%.2f"|format(n.valor_total) }}</td>
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ n.boletos|length }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400">Nenhuma nota fiscal encontrada com os filtros selecionados.</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

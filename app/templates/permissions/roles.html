@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Permissões por Role{% endblock %}
+{% block content %}
+<h1 class="text-xl font-bold text-gray-900 mb-6">Permissões por Role</h1>
+
+<div class="space-y-6">
+    {% for role in roles %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-sm font-semibold text-gray-700">{{ role.name }}</h2>
+            <p class="text-xs text-gray-400">{{ role.description or 'Sem descrição' }}</p>
+        </div>
+        <form method="POST" action="/permissions/roles/{{ role.id }}" class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide py-2">Recurso</th>
+                            {% for action_key, action_name in actions %}
+                            <th class="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide py-2 px-3">{{ action_name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resource_key, resource_name in resources %}
+                        <tr class="border-b border-gray-100 last:border-0">
+                            <td class="py-3 text-sm font-medium text-gray-700">{{ resource_name }}</td>
+                            {% for action_key, action_name in actions %}
+                            <td class="py-3 text-center">
+                                {% set field = resource_key ~ '_' ~ action_key %}
+                                {% set perm_id = resource_key ~ ':' ~ action_key %}
+                                <input type="checkbox" name="{{ field }}" value="1"
+                                    {% for p in role.permissions %}{% if p.resource == resource_key and p.action == action_key %}checked{% endif %}{% endfor %}
+                                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Salvar</button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

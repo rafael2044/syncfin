@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Tipos de Material{% endblock %}
+{% block content %}
+{% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Tipos de Material</h1>
+        <p class="text-sm text-gray-500 mt-1">Classifique suas notas fiscais por tipo de material</p>
+    </div>
+    {% if 'categories:create' in perms or user.role.name == 'admin' %}
+    <a href="/tipos-material/new" class="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition shadow-sm" title="Cadastrar um novo tipo de material">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Novo Tipo
+    </a>
+    {% endif %}
+</div>
+
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+    <p class="text-sm text-gray-500">{{ pagination.total }} registro{{ 's' if pagination.total != 1 }} encontrado{{ 's' if pagination.total != 1 }}</p>
+    <form method="GET" action="/tipos-material" data-no-loading class="flex items-center gap-2">
+        <label class="text-sm text-gray-500">Itens por página:</label>
+        <select name="per_page" onchange="this.form.submit()" class="px-2 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            {% for n in [10, 20, 50, 100] %}
+            <option value="{{ n }}" {% if pagination.per_page == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Nome</th>
+                <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">Ações</th>
+            </tr></thead>
+            <tbody>
+                {% for tipo in tipos %}
+                <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition">
+                    <td class="px-4 py-3 text-sm text-gray-700">{{ tipo.name }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-1">
+                            {% if 'categories:edit' in perms or user.role.name == 'admin' %}
+                            <a href="/tipos-material/{{ tipo.id }}/edit" class="px-2.5 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">Editar</a>
+                            {% endif %}
+                            {% if 'categories:delete' in perms or user.role.name == 'admin' %}
+                            <form method="POST" action="/tipos-material/{{ tipo.id }}/delete" class="inline" onsubmit="return confirm('Excluir este tipo de material?')">
+                                <button type="submit" class="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition">Excluir</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if pagination.total_pages > 1 %}
+<div class="flex items-center justify-between mt-6">
+    <div class="hidden sm:flex items-center gap-1">
+        {% set base_params = ['per_page=' + pagination.per_page|string] %}
+
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Anterior</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Anterior</span>
+        {% endif %}
+
+        {% for p in range(1, pagination.total_pages + 1) %}
+            {% if p == pagination.page %}
+            <span class="px-3 py-1.5 text-sm font-medium text-white bg-primary-600 border border-primary-600 rounded-lg">{{ p }}</span>
+            {% elif p == 1 or p == pagination.total_pages or (p >= pagination.page - 2 and p <= pagination.page + 2) %}
+            <a href="?{{ base_params|join('&') }}&page={{ p }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">{{ p }}</a>
+            {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+            <span class="px-3 py-1.5 text-sm font-medium text-gray-400">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Próximo</a>
+        {% else %}
+        <span class="px-3 py-1.5 text-sm font-medium text-gray-300 bg-gray-50 border border-gray-200 rounded-lg cursor-not-allowed">Próximo</span>
+        {% endif %}
+    </div>
+    <div class="flex sm:hidden items-center gap-2">
+        {% if pagination.page > 1 %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page - 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&laquo;</a>
+        {% endif %}
+        <span class="text-sm text-gray-500">{{ pagination.page }} / {{ pagination.total_pages }}</span>
+        {% if pagination.page < pagination.total_pages %}
+        <a href="?{{ base_params|join('&') }}&page={{ pagination.page + 1 }}" class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">&raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

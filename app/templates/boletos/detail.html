@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}SyncFin - Boleto {{ boleto.numero_nota }}{% endblock %}
+{% block content %}
+{% set perms = request.state.permissions if request.state is defined and request.state.permissions is defined else [] %}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <div class="flex items-center gap-2 text-sm text-gray-400 mb-1">
+            <a href="/boletos" class="hover:text-primary-600 transition">Boletos</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <span class="text-gray-600">{{ boleto.numero_nota }}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">Boleto {{ boleto.numero_nota }}</h1>
+    </div>
+    <div class="flex gap-2">
+        {% if 'boletos:edit' in perms or user.role.name == 'admin' %}
+        <a href="/boletos/{{ boleto.id }}/edit" title="Editar informações deste boleto" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar
+        </a>
+        {% endif %}
+        {% if not boleto.pago and ('boletos:edit' in perms or user.role.name == 'admin') %}
+        <a href="/boletos/{{ boleto.id }}/pay" title="Registrar pagamento deste boleto" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Registrar Pagamento
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="space-y-4">
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Informações do Boleto</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Número da Nota</p>
+                <p class="text-sm text-gray-800">{{ boleto.numero_nota }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Empresa</p>
+                <p class="text-sm text-gray-800">{{ boleto.company.name }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Tipo de Material</p>
+                <p class="text-sm text-gray-800">{{ boleto.nota_fiscal.tipo_material.name if boleto.nota_fiscal else '-' }}</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Descrição</p>
+                <p class="text-sm text-gray-800">{{ boleto.descricao or '-' }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Valor</p>
+                <p class="text-sm font-bold text-primary-600">R$ {{ "%.2f"|format(boleto.valor) }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Status</p>
+                {% if boleto.status == 'pago' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Pago</span>
+                {% elif boleto.status == 'atrasado' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Atrasado</span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Pendente</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Data de Emissão</p>
+                <p class="text-sm text-gray-800">{{ boleto.data_emissao.strftime('%d/%m/%Y') }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Data de Vencimento</p>
+                <p class="text-sm text-gray-800">{{ boleto.data_vencimento.strftime('%d/%m/%Y') }}</p>
+            </div>
+            {% if boleto.pago %}
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Data de Pagamento</p>
+                <p class="text-sm text-gray-800">{{ boleto.data_pagamento.strftime('%d/%m/%Y') }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if boleto.anexo %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Anexo do Boleto</h2>
+        {% if boleto.anexo.endswith('.pdf') %}
+        <a href="{{ boleto.anexo }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Abrir PDF
+        </a>
+        {% else %}
+        <a href="{{ boleto.anexo }}" target="_blank"><img src="{{ boleto.anexo }}" alt="Anexo" class="max-w-full max-h-96 rounded-lg border border-gray-200"></a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if boleto.payments %}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Comprovantes de Pagamento</h2>
+        {% for payment in boleto.payments %}
+        <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 mb-3 last:mb-0">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Valor Pago</p>
+                    <p class="text-sm font-semibold text-gray-800">R$ {{ "%.2f"|format(payment.valor_pago) }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Data do Pagamento</p>
+                    <p class="text-sm text-gray-800">{{ payment.data_pagamento.strftime('%d/%m/%Y') }}</p>
+                </div>
+                {% if payment.observacao %}
+                <div>
+                    <p class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Observação</p>
+                    <p class="text-sm text-gray-800">{{ payment.observacao }}</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if payment.comprovante %}
+            <div class="border-t border-gray-200 pt-3">
+                {% if payment.comprovante.endswith('.pdf') %}
+                <a href="{{ payment.comprovante }}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Abrir Comprovante PDF
+                </a>
+                {% else %}
+                <a href="{{ payment.comprovante }}" target="_blank"><img src="{{ payment.comprovante }}" alt="Comprovante" class="max-w-full max-h-96 rounded-lg border border-gray-200"></a>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-400 border-t border-gray-200 pt-3">Nenhum comprovante anexado.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="flex gap-2 mt-6">
+    <a href="/boletos" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Voltar
+    </a>
+</div>
+{% endblock %}
