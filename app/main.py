@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from pathlib import Path
 
 from app.database import SessionLocal
 from app.models import Role, User, TipoMaterial, Permission
 from app.routes import auth, dashboard, users, companies, fornecedores, notas, tipos_material, boletos, reports, permissions, audit
 from app.routes.auth import get_user_permissions_list
 from passlib.context import CryptContext
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 app = FastAPI(title="SyncFin - Sistema de Gestão Financeira")
 
@@ -39,8 +42,8 @@ class PermissionsMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(PermissionsMiddleware)
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
+app.mount("/uploads", StaticFiles(directory=str(BASE_DIR / "uploads")), name="uploads")
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
